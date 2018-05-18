@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<title>Kadaster - percelen aankopen</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"></script>
+
+    <script src="OpenLayers.js"></script>
+	<script src="rdam.json"></script>
+	<script src="katendrecht.json"></script>
+	<script src="adressen.json"></script>
+	<script src="gebouwen.json"></script>
+	<script src="koppel.json"></script>
+	<script src="http://maps.stamen.com/js/tile.stamen.js?v1.1.3"></script>
+	
+ <style>
+      .olImageLoadError {
+          display: none !important;
+      }
+	  .map {
+	  background: white;
+		position: absolute;
+		width: 100%;
+		height:100%;
+		top: 0px;
+		bottom: 0px;
+		left: 0px;
+		right: 0px;
+	  }
+	  .olControlAttribution  {
+		background: white;
+		padding: 2px;
+		bottom: 20px !important;
+	  }
+	  .olControlPermalink {
+	    background: white;
+		bottom: 5px !important;
+	  }
+	  .click {
+	  cursor:pointer;
+	  }
+    </style>
+    <script type="text/javascript">
+		var map, layer;		
+		var cats = ['groot en detailhandel','horeca','industrie/bouwnijverheid','onderwijs','overig','zakelijke diensten']
+		var k = 0;
+		var c = 0;
+        function init(){
+		OpenLayers.ProxyHost = "/cgi-bin/proxy.cgi?url=";
+		var v = new OpenLayers.StyleMap({
+				'strokeColor':  '#00397C',
+				'fillColor':  '#00397C',
+				strokeWidth: 2,
+				fillOpacity: 0.5
+		});
+		var s = new OpenLayers.StyleMap({
+				'strokeColor':  '#f00',
+				'fillColor':  '#f00',
+				fillOpacity: 0.8
+		});
+		
+		map = new OpenLayers.Map("map");
+                map.addLayer(layer = new OpenLayers.Layer.Stamen("toner", {opacity:0.1}));
+                map.setCenter(new OpenLayers.LonLat(499141, 6782304), 14);
+		 
+        var geojson_format = new OpenLayers.Format.GeoJSON();
+		var percelen_layer = new OpenLayers.Layer.Vector('percelen',{styleMap: v,zIndex:10000}); 
+				map.addLayer(percelen_layer);
+		
+		
+		var vector_layer = new OpenLayers.Layer.Vector('vector',{styleMap: v});
+		map.addLayer(vector_layer);
+		
+		$(percelen.features).each(function(i) {		
+			var kadaster = [];		
+			$(katendrecht).each(function(j) {
+				if(percelen.features[i].properties.PC6 == katendrecht[j].postcode) {
+					kadaster.push(katendrecht[j]);
+					
+				}
+				percelen.features[i].properties.kadaster = kadaster;
+			});
+		});
+
+		function myLoop () {           //  create a loop function
+			$(percelen.features).each(function(k){    //  call a 3s setTimeout when the loop is called
+				var geometry ={"type":"FeatureCollection","features":[]};				
+				
+				$(percelen.features[k].properties.kadaster).each(function(){
+					if(this.categorie == cats[c]) {
+						geometry.features.push(percelen.features[k]);
+					}
+				});
+				
+		
+				//OpenLayers_Layer_Vector_68_root
+				
+				//, renderers:['Canvas']}); 
+				//OpenLayers_Geometry_Polygon_157
+				
+				var feature = geojson_format.read(geometry)
+				vector_layer.addFeatures(feature);				
+				if(feature[0] && feature[0].geometry) {
+					$(feature).each(function(f){
+						$('#'+feature[f].geometry.id).fadeIn(100).delay(100).animate({opacity: 0.2},1000);        
+						
+					});
+				}
+				});
+		}
+		
+		$('#k1').click(function(){
+		vector_layer.removeAllFeatures();
+			k =0;
+			c =0;
+			myLoop();
+		});
+		$('#k2').click(function(){
+		vector_layer.removeAllFeatures();
+			k =0;
+			c =1;
+			myLoop();
+		});
+		$('#k3').click(function(){
+		vector_layer.removeAllFeatures();
+			k =0;
+			c =2;
+			myLoop();
+		});
+		$('#k4').click(function(){
+		vector_layer.removeAllFeatures();
+			k =0;
+			c =3;
+			myLoop();
+		});
+		$('#k5').click(function(){
+		vector_layer.removeAllFeatures();
+			k =0;
+			c =4;
+			myLoop();
+		});
+		$('#k6').click(function(){
+		vector_layer.removeAllFeatures();
+			k =0;
+			c =5;
+			myLoop();
+		});
+	}
+        
+    </script>
+  </head>
+  <body onload="init()">
+<div id="foo"></div>
+    <div id="map" class="map"></div>
+	<div id="counter" style="position: absolute; float: right; top: 10px; right: 10px; width: 150px; height:1000px; color: black;">
+	<span id="k1" class="click">groot en detailhandel</span><br/>
+	<span id="k2" class="click">horeca</span><br/>
+	<span id="k3" class="click">industrie/bouwnijverheid</span><br/>
+	<span id="k4" class="click">onderwijs</span><br/>
+	<span id="k5" class="click">overig</span><br/>
+	<span id="k6" class="click">zakelijke diensten</span><br/>
+		
+	</div>
+	<div style="display:none">Feel free to copy and modify</div>
+  </body>
+</html>

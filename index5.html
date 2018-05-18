@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+	<title>Vector animation in OpenLayers</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+	<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"></script>
+    <script src="OpenLayers.js"></script>
+	<script src="poly.json"></script>
+	<script src="routes.json"></script>
+	<script src="red.json"></script>
+	<script src="http://maps.stamen.com/js/tile.stamen.js?v1.1.3"></script>
+ <style>
+      .olImageLoadError {
+          display: none !important;
+      }
+	  .map {
+		background: black;
+		position: absolute;
+		width: 100%;
+		height:100%;
+		top: 0px;
+		bottom: 0px;
+		left: 0px;
+		right: 0px;
+	  }
+	  .olControlAttribution  {
+		background: white;
+		padding: 2px;
+		bottom: 20px !important;
+	  }
+	  .olControlPermalink {
+	    background: white;
+		bottom: 5px !important;
+	  }
+    </style>
+    <script type="text/javascript">	
+        var map, layer;
+		var people = ['1101','1500','5460','3402','3581','3581','2628','3440','6114','5251','7311','7311','3038','1091','2491','5038','5615','2132','1101','7414','7333','1058','4817','4817','1068','8265','7323','3844','2531','1000','2901','3439'];	
+		var polygonen = [];	
+		
+        function init(){
+
+			var s = new OpenLayers.StyleMap({
+					'strokeColor':  '#fff',
+					'fillColor':  '#fff',
+					fillOpacity: 0.8
+			});
+			var v = new OpenLayers.StyleMap({
+					'strokeColor':  '#f00',
+					'fillColor':  '#f00',
+					fillOpacity: 0.8
+			});
+
+			map = new OpenLayers.Map("map");
+                map.addLayer(layer = new OpenLayers.Layer.Stamen("toner", {opacity:0.15}));
+                map.setCenter(new OpenLayers.LonLat(566141, 6757304), 9);
+		 
+			var route_layer = new OpenLayers.Layer.Vector(); 
+			map.addLayer(route_layer);
+			var geojson_format = new OpenLayers.Format.GeoJSON();
+			var red = new OpenLayers.Layer.Vector('red',{styleMap: v,zIndex:10000}); 
+			map.addLayer(red);
+			red.addFeatures(geojson_format.read(red_feature));
+		
+			//Walk through all the available polygons to see if they match the list of people,
+			//if so add them to the 'local' set of polygons
+			$(featurecollection.features).each(function(i) {		
+				$(people).each(function(j) {						
+					if(featurecollection.features[i].properties.pc4code == people[j]) {
+						var polygon = {"type":"FeatureCollection","features":[]};
+						polygon.features.push(featurecollection.features[i]);
+						polygonen.push(polygon);
+					}				
+				});
+			});
+			
+			//The hackish magic!
+			//Walk (with a diminishing timeout) through the 'local' polygons and for each
+			//create a vector layer, hide it, add the polygon and fade it in.
+			var k = 0;
+			function drawPolygons () {          
+				setTimeout(function () {   
+					var vector_layer = new OpenLayers.Layer.Vector('vector',{styleMap: s}); 
+					map.addLayer(vector_layer);
+					$('#'+vector_layer.id).hide();
+					vector_layer.addFeatures(geojson_format.read(polygonen[k]));				
+					$('#'+vector_layer.id).fadeIn(600);  
+					k++;  
+					if (k < polygonen.length) { 
+						drawPolygons();
+					}    
+					else drawPoints();				  
+			   }, 500 - (k/polygonen.length)*400)
+			}
+			//call the above function
+			drawPolygons();
+		
+			//Second hackish magic!
+			//Slightly complexer timed loop: for each of the available routes, walk through the points
+			//with a delay of 0ms and add it to the route_layer as a string of it and its next point.
+			var rout = 0
+			function drawPoints() {
+				//looping through all the routes in parallel
+				$(routes).each(function(rout){
+					var pnt = 0;				
+					function drawPoint() {
+						//looping through the points in a route in a serial fashion (thus showing the 'progress' on the route
+						setTimeout(function () {
+							var wkt = 'LINESTRING('+routes[rout][pnt] + ',' +routes[rout][pnt+1]+')',
+							feature = new OpenLayers.Format.WKT().read(wkt),
+							  geometry = feature.geometry.transform(
+								new OpenLayers.Projection('EPSG:4326'), 
+								new OpenLayers.Projection('EPSG:900913')
+							),
+							style = {
+								strokeColor: '#fff',
+								strokeOpacity: 0.6,
+								strokeWidth: 1,
+							},
+							transformedFeature = new OpenLayers.Feature.Vector(geometry, {}, style);
+							route_layer.addFeatures([transformedFeature]);
+							pnt++;
+							if (pnt+1<routes[rout].length) {
+								drawPoint();
+							}
+							else return false;
+						}, 0);
+					}
+					drawPoint();
+				});
+			}
+		}
+        
+    </script>
+  </head>
+  <body onload="init()">
+<div id="foo"></div>
+    <div id="map" class="map"></div>
+	<div style="display:none">Feel free to copy and modify</div>
+  </body>
+</html>
